@@ -213,4 +213,23 @@ describe("Silent Auction Smart Contract", () => {
         expect(ledgerState.publicPrice).toEqual(sim.minPrice);
         expect(winningBid).toEqual(bobBid3);
     });
+    // add "new bid lower than your previous bid test"
+    it('Allows only higher than previous bids for repeat bidders', () => {
+        const maxBids = BigInt(5);
+        const sim = new AuctionSimulator(maxBids);
+        
+        const bob = new WalletBuilder(sim.contractAddress, sim.getContractState());
+
+        sim.switchCaller(bob.callerContext);
+        const bobsBid1 = BigInt(10);
+        sim.bid(bobsBid1);
+
+        const ledgerState = sim.getLedger();
+        expect(ledgerState.highestBid).toEqual(bobsBid1);
+
+        const bobsBid2 = BigInt(5);
+        expect(() => {
+            sim.bid(bobsBid2);
+        }).toThrow("New bid lower than your previous bid");
+    })
 });
