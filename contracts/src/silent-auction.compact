@@ -1,8 +1,8 @@
 /**
-    Silent Auction where the organizer can set a minimum price
+    Silent Auction where the organizer can set a minimum price (reserve)
     that remains unknown to bidders until the max number of bids
     has been reached. Bidders are aware of each others bids and current highest bid, 
-    but the identity of bidders is private
+    but the identity of bidders is private.
 **/
 pragma language_version 0.22;
 import CompactStandardLibrary;
