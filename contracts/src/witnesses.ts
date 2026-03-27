@@ -1,12 +1,14 @@
 import { Ledger } from './managed/silent-auction/contract/index.js';
-import {WitnessContext} from '@midnight-ntwrk/compact-runtime';
+import { WitnessContext, fromHex} from '@midnight-ntwrk/compact-runtime';
 
 export type AuctionPrivateState = {
-    sk: Uint8Array
+    sk: Uint8Array,
+    rand: Uint8Array,
 };
 
-export const createAuctionPrivateState = (sk: Uint8Array) => ({
-    sk
+export const createAuctionPrivateState = (sk: Uint8Array, rand: Uint8Array) => ({
+    sk,
+    rand
 });
 
 export const witnesses = {
@@ -16,4 +18,12 @@ export const witnesses = {
         AuctionPrivateState,
         Uint8Array
     ] => [privateState, privateState.sk],
+    getRandom: ({
+        privateState
+    }: WitnessContext<Ledger, AuctionPrivateState>): [
+        AuctionPrivateState,
+        Uint8Array
+    ] => {
+        return [privateState, privateState.rand];
+    },
 };
