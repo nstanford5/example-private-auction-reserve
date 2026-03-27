@@ -19,21 +19,21 @@ export type ProvableCircuits<PS> = {
 }
 
 export type PureCircuits = {
-  publicKey(_sk_0: Uint8Array): Uint8Array;
+  getDappPubKey(_sk_0: Uint8Array): Uint8Array;
 }
 
 export type Circuits<PS> = {
   bid(context: __compactRuntime.CircuitContext<PS>, bidAmount_0: bigint): __compactRuntime.CircuitResults<PS, []>;
   closeAuction(context: __compactRuntime.CircuitContext<PS>, minPrice_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
   revealWin(context: __compactRuntime.CircuitContext<PS>, minPrice_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
-  publicKey(context: __compactRuntime.CircuitContext<PS>, _sk_0: Uint8Array): __compactRuntime.CircuitResults<PS, Uint8Array>;
+  getDappPubKey(context: __compactRuntime.CircuitContext<PS>, _sk_0: Uint8Array): __compactRuntime.CircuitResults<PS, Uint8Array>;
 }
 
 export type Ledger = {
-  readonly auctionOrganizer: { bytes: Uint8Array };
+  readonly auctionOrganizer: Uint8Array;
   readonly hiddenPrice: Uint8Array;
-  readonly publicPrice: bigint;
   readonly maxBids: bigint;
+  readonly publicPrice: bigint;
   bidders: {
     isEmpty(): boolean;
     size(): bigint;

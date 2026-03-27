@@ -12,10 +12,10 @@ export enum AuctionState {
     OPEN
 }
 
-export ledger auctionOrganizer: ZswapCoinPublicKey;
-export ledger hiddenPrice: Bytes<32>;
+export sealed ledger auctionOrganizer: Bytes<32>;
+export sealed ledger hiddenPrice: Bytes<32>;
+export sealed ledger maxBids: Uint<16>;
 export ledger publicPrice: Uint<16>;
-export ledger maxBids: Uint<16>;
 export ledger bidders: Map<Bytes<32>, Uint<16>>;// unique bidders, overwriting bids allowed
 export ledger bidCount: Counter;// number of bids
 export ledger highestBid: Uint<16>;
@@ -24,8 +24,10 @@ export ledger auctionState: AuctionState;
 witness localSk(): Bytes<32>;
 
 constructor(_minPrice: Uint<16>, maxBidCount: Uint<16>) {
-    auctionOrganizer = ownPublicKey();
     const _sk = localSk();
+    const pubKey = getDappPubKey(_sk);
+    auctionOrganizer = disclose(pubKey);
+
     const hashedPrice = commitWithSk(_minPrice as Bytes<32>, _sk);
 
     maxBids = disclose(maxBidCount);
@@ -40,7 +42,7 @@ export circuit bid(bidAmount: Uint<16>): [] {
     assert(auctionState == AuctionState.OPEN, "The auction has ended");
     
     const _sk = localSk();
-    const key = publicKey(_sk);
+    const key = getDappPubKey(_sk);
     const pubKey = disclose(key);
     const publicBid = disclose(bidAmount);
 
@@ -59,7 +61,9 @@ export circuit bid(bidAmount: Uint<16>): [] {
 
 // allow the organizer to close the auction if maxBids is not reached
 export circuit closeAuction(minPrice: Uint<16>): Uint<16> {
-    assert(ownPublicKey() == auctionOrganizer, "You are not the auction organizer");
+    const _sk = localSk();
+    const pubKey = getDappPubKey(_sk);
+    assert(disclose(pubKey) == auctionOrganizer, "You are not the auction organizer");
     assert(auctionState == AuctionState.OPEN, "The auction has already been closed");
 
     auctionState = AuctionState.CLOSED;
@@ -67,10 +71,11 @@ export circuit closeAuction(minPrice: Uint<16>): Uint<16> {
 }
 
 export circuit revealWin(minPrice: Uint<16>): Uint<16> {
-    assert(auctionOrganizer == ownPublicKey(), "You are not the auction organizer");
+    const _sk = localSk();
+    const pubKey = getDappPubKey(_sk);
+    assert(auctionOrganizer == disclose(pubKey), "You are not the auction organizer");
     assert(auctionState == AuctionState.CLOSED, "The auction is still open");
     
-    const _sk = localSk();
     const hashedPrice = commitWithSk(minPrice as Bytes<32>, _sk);
     assert(hashedPrice == hiddenPrice, "Attempt to change min price detected, shame on you.");
     
@@ -90,7 +95,7 @@ circuit commitWithSk(_minPrice: Bytes<32>, _sk: Bytes<32>): Bytes<32> {
     return disclose(hash);
 }
 
-// hash a publicKey specific to this DApp so that users cannot be tracked
-export circuit publicKey(_sk: Bytes<32>): Bytes<32> {
+// hash a "public key" specific to this DApp so that users cannot be tracked
+export circuit getDappPubKey(_sk: Bytes<32>): Bytes<32> {
     return persistentHash<Vector<2, Bytes<32>>>([pad(32, "silent-auction:pk:"), _sk]);
 }

@@ -59,7 +59,7 @@
       }
     },
     {
-      "name": "publicKey",
+      "name": "getDappPubKey",
       "pure": true,
       "proof": false,
       "arguments": [

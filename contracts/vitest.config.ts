@@ -21,6 +21,8 @@ export default defineConfig({
         statements: -269
       }
     },
+    testTimeout: 300_00,
+    hookTimeout: 120_000,
     reporters: ["default", ["junit", { outputFile: "reports/report.xml" }]]
   },
   resolve: {

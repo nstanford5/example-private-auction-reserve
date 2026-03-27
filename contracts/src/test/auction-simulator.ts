@@ -7,7 +7,8 @@ import {
     sampleUserAddress,
     createCircuitContext,
     ContractState,
-    ChargedState
+    ChargedState,
+    fromHex
 } from "@midnight-ntwrk/compact-runtime";
 import { 
     Contract,
@@ -37,7 +38,7 @@ export class AuctionSimulator {
         this.contractAddress = sampleContractAddress();
         this.aliceAddress = sampleUserAddress();
         this.aliceSk = randomBytes(32);
-        this.alicePrivateState = createAuctionPrivateState(this.aliceSk);
+        this.alicePrivateState = createAuctionPrivateState(this.aliceSk, randomBytes(32));
         this.minPrice = BigInt(100);
         const {
             currentPrivateState,
@@ -81,6 +82,8 @@ export class AuctionSimulator {
         );
     }
 
+    // start circuit wrappers
+    // bid, closeAuction, revealWin, publicKey
     public bid(bidAmount: bigint): void {
         this.circuitContext = this.contract.impureCircuits.bid(
             this.circuitContext,
@@ -124,7 +127,7 @@ export class WalletBuilder {
     constructor(contractAddress: string, contractState: ChargedState) {
         this.address = sampleUserAddress();
         this.sk = randomBytes(32);
-        this.privateState = createAuctionPrivateState(this.sk);
+        this.privateState = createAuctionPrivateState(this.sk, randomBytes(32));
         this.contractAddress = contractAddress;
         this.callerContext = createCircuitContext(
             this.contractAddress,
