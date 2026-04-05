@@ -1,21 +1,31 @@
 import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';
 
-export enum AuctionState { CLOSED = 0, OPEN = 1 }
+export enum AuctionState { CLOSED = 0, OPEN = 1, RECEIVE = 2, PAID = 3 }
 
 export type Witnesses<PS> = {
   localSk(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];
 }
 
 export type ImpureCircuits<PS> = {
+  receiveTokens(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
   bid(context: __compactRuntime.CircuitContext<PS>, bidAmount_0: bigint): __compactRuntime.CircuitResults<PS, []>;
-  closeAuction(context: __compactRuntime.CircuitContext<PS>, minPrice_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
-  revealWin(context: __compactRuntime.CircuitContext<PS>, minPrice_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
+  closeAuction(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  revealWin(context: __compactRuntime.CircuitContext<PS>,
+            minPrice_0: bigint,
+            address_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
+  claimWin(context: __compactRuntime.CircuitContext<PS>,
+           address_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type ProvableCircuits<PS> = {
+  receiveTokens(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
   bid(context: __compactRuntime.CircuitContext<PS>, bidAmount_0: bigint): __compactRuntime.CircuitResults<PS, []>;
-  closeAuction(context: __compactRuntime.CircuitContext<PS>, minPrice_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
-  revealWin(context: __compactRuntime.CircuitContext<PS>, minPrice_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
+  closeAuction(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  revealWin(context: __compactRuntime.CircuitContext<PS>,
+            minPrice_0: bigint,
+            address_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
+  claimWin(context: __compactRuntime.CircuitContext<PS>,
+           address_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
 }
 
 export type PureCircuits = {
@@ -23,9 +33,14 @@ export type PureCircuits = {
 }
 
 export type Circuits<PS> = {
+  receiveTokens(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
   bid(context: __compactRuntime.CircuitContext<PS>, bidAmount_0: bigint): __compactRuntime.CircuitResults<PS, []>;
-  closeAuction(context: __compactRuntime.CircuitContext<PS>, minPrice_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
-  revealWin(context: __compactRuntime.CircuitContext<PS>, minPrice_0: bigint): __compactRuntime.CircuitResults<PS, bigint>;
+  closeAuction(context: __compactRuntime.CircuitContext<PS>): __compactRuntime.CircuitResults<PS, []>;
+  revealWin(context: __compactRuntime.CircuitContext<PS>,
+            minPrice_0: bigint,
+            address_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
+  claimWin(context: __compactRuntime.CircuitContext<PS>,
+           address_0: { bytes: Uint8Array }): __compactRuntime.CircuitResults<PS, []>;
   getDappPubKey(context: __compactRuntime.CircuitContext<PS>, _sk_0: Uint8Array): __compactRuntime.CircuitResults<PS, Uint8Array>;
 }
 
@@ -33,6 +48,7 @@ export type Ledger = {
   readonly auctionOrganizer: Uint8Array;
   readonly hiddenPrice: Uint8Array;
   readonly maxBids: bigint;
+  readonly depositAmount: bigint;
   readonly publicPrice: bigint;
   bidders: {
     isEmpty(): boolean;
@@ -44,6 +60,8 @@ export type Ledger = {
   readonly bidCount: bigint;
   readonly highestBid: bigint;
   readonly auctionState: AuctionState;
+  readonly nftType: Uint8Array;
+  readonly organizerAddress: { bytes: Uint8Array };
 }
 
 export type ContractReferenceLocations = any;

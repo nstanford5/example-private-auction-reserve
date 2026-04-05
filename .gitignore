@@ -1,2 +1,6 @@
 /node_modules
 .yarn
+.midnight-expert
+/contract/managed
+/logs
+/midnight-level-db

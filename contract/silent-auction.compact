@@ -9,17 +9,22 @@ import CompactStandardLibrary;
 
 export enum AuctionState {
     CLOSED,
-    OPEN
+    OPEN,
+    RECEIVE,
+    PAID
 }
 
 export sealed ledger auctionOrganizer: Bytes<32>;
 export sealed ledger hiddenPrice: Bytes<32>;
 export sealed ledger maxBids: Uint<16>;
+export sealed ledger depositAmount: Uint<64>;
 export ledger publicPrice: Uint<16>;
 export ledger bidders: Map<Bytes<32>, Uint<16>>;// unique bidders, overwriting bids allowed
 export ledger bidCount: Counter;// number of bids
 export ledger highestBid: Uint<16>;
 export ledger auctionState: AuctionState;
+export ledger nftType: Bytes<32>;
+export ledger organizerAddress: UserAddress;
 
 witness localSk(): Bytes<32>;
 
@@ -30,9 +35,33 @@ constructor(_minPrice: Uint<16>, maxBidCount: Uint<16>) {
 
     const hashedPrice = commitWithSk(_minPrice as Bytes<32>, _sk);
 
+    depositAmount = 50;// the contract requires a 50 NIGHT deposit to dis-incentivize Alice
     maxBids = disclose(maxBidCount);
     hiddenPrice = hashedPrice;
     highestBid = 0;
+    auctionState = AuctionState.RECEIVE;
+}
+
+// the contract takes a deposit from the Organizer to ensure they are incentivized to complete the auction
+// Mints a new NFT for auction
+export circuit receiveTokens(): [] {
+    assert(auctionState == AuctionState.RECEIVE, "The contract is not ready to receive Night tokens");
+    const _sk = localSk();
+    const pubKey = getDappPubKey(_sk);
+    assert(auctionOrganizer == disclose(pubKey), "You are not the auctionOrganizer");
+
+    // take in deposit from organizer
+    receiveUnshielded(default<Bytes<32>>, depositAmount as Uint<128>);
+
+    const domain = pad(32, "auction:nft");
+
+    // mint the NFT that is up for auction
+    const color = mintUnshieldedToken(
+        disclose(domain),
+        1,
+        left<ContractAddress, UserAddress>(kernel.self())
+    );
+    nftType = tokenType(disclose(domain), kernel.self());
     auctionState = AuctionState.OPEN;
 }
 
@@ -44,6 +73,7 @@ export circuit bid(bidAmount: Uint<16>): [] {
     const _sk = localSk();
     const key = getDappPubKey(_sk);
     const pubKey = disclose(key);
+    assert(auctionOrganizer != pubKey, "The auction organizer cannot bid");
     const publicBid = disclose(bidAmount);
 
     if(bidders.member(pubKey)){
@@ -60,17 +90,16 @@ export circuit bid(bidAmount: Uint<16>): [] {
 }
 
 // allow the organizer to close the auction if maxBids is not reached
-export circuit closeAuction(minPrice: Uint<16>): Uint<16> {
+export circuit closeAuction(): [] {
     const _sk = localSk();
     const pubKey = getDappPubKey(_sk);
     assert(disclose(pubKey) == auctionOrganizer, "You are not the auction organizer");
     assert(auctionState == AuctionState.OPEN, "The auction has already been closed");
 
     auctionState = AuctionState.CLOSED;
-    return revealWin(minPrice);
 }
 
-export circuit revealWin(minPrice: Uint<16>): Uint<16> {
+export circuit revealWin(minPrice: Uint<16>, address: UserAddress): [] {
     const _sk = localSk();
     const pubKey = getDappPubKey(_sk);
     assert(auctionOrganizer == disclose(pubKey), "You are not the auction organizer");
@@ -79,15 +108,44 @@ export circuit revealWin(minPrice: Uint<16>): Uint<16> {
     const hashedPrice = commitWithSk(minPrice as Bytes<32>, _sk);
     assert(hashedPrice == hiddenPrice, "Attempt to change min price detected, shame on you.");
     
+    auctionState = AuctionState.CLOSED;
     // all votes are in, public price can be revealed
     publicPrice = disclose(minPrice);
-
-    // if the publicPrice is not met, the highestBid doesn't matter
+    organizerAddress = disclose(address);
+    // send deposit back to organizer
     if(highestBid < publicPrice){
-        return 0;
-    } else {
-        return highestBid;
+        sendUnshielded(
+            default<Bytes<32>>, 
+            depositAmount as Uint<128>, 
+            right<ContractAddress, UserAddress>(organizerAddress)
+        );
     }
+}
+
+export circuit claimWin(address: UserAddress): [] {
+    const _sk = localSk();
+    const pubKey = getDappPubKey(_sk);
+    assert(bidders.lookup(disclose(pubKey)) == highestBid, "You are not the high bidder");
+    assert(auctionState == AuctionState.CLOSED, "The auction is not yet closed");
+
+    // take in the price from the winner
+    receiveUnshielded(default<Bytes<32>>, highestBid as Uint<128>);
+
+    // send out the NFT to the winner
+    sendUnshielded(
+        nftType,
+        1,
+        right<ContractAddress, UserAddress>(disclose(address))
+    );
+
+    // send deposit back to organizer
+    const total = highestBid + depositAmount;
+    sendUnshielded(
+        default<Bytes<32>>, 
+        total as Uint<128>, 
+        right<ContractAddress, UserAddress>(organizerAddress)
+    );
+    auctionState = AuctionState.PAID;
 }
 
 circuit commitWithSk(_minPrice: Bytes<32>, _sk: Bytes<32>): Bytes<32> {
@@ -97,5 +155,6 @@ circuit commitWithSk(_minPrice: Bytes<32>, _sk: Bytes<32>): Bytes<32> {
 
 // hash a "public key" specific to this DApp so that users cannot be tracked
 export circuit getDappPubKey(_sk: Bytes<32>): Bytes<32> {
-    return persistentHash<Vector<2, Bytes<32>>>([pad(32, "silent-auction:pk:"), _sk]);
+    const hash = persistentHash<Vector<2, Bytes<32>>>([pad(32, "silent-auction:pk:"), _sk]);
+    return hash;
 }

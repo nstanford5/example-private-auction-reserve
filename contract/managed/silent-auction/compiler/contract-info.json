@@ -4,6 +4,18 @@
   "runtime-version": "0.15.0",
   "circuits": [
     {
+      "name": "receiveTokens",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
       "name": "bid",
       "pure": false,
       "proof": true,
@@ -27,17 +39,11 @@
       "pure": false,
       "proof": true,
       "arguments": [
-        {
-          "name": "minPrice",
-          "type": {
-            "type-name": "Uint",
-            "maxval": 65535
-          }
-        }
       ],
       "result-type": {
-        "type-name": "Uint",
-        "maxval": 65535
+        "type-name": "Tuple",
+        "types": [
+        ]
       }
     },
     {
@@ -51,11 +57,56 @@
             "type-name": "Uint",
             "maxval": 65535
           }
+        },
+        {
+          "name": "address",
+          "type": {
+            "type-name": "Struct",
+            "name": "UserAddress",
+            "elements": [
+              {
+                "name": "bytes",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              }
+            ]
+          }
         }
       ],
       "result-type": {
-        "type-name": "Uint",
-        "maxval": 65535
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "claimWin",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "address",
+          "type": {
+            "type-name": "Struct",
+            "name": "UserAddress",
+            "elements": [
+              {
+                "name": "bytes",
+                "type": {
+                  "type-name": "Bytes",
+                  "length": 32
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
       }
     },
     {

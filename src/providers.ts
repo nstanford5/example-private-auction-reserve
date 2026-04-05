@@ -8,7 +8,7 @@ import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-pri
 import { type MidnightWalletProvider } from './wallet.js';
 import { type NetworkConfig } from './config.js';
 
-export type AuctionCircuits = 'bid' | 'closeAuction' | 'revealWin';
+export type AuctionCircuits = 'bid' | 'closeAuction' | 'revealWin' | 'receiveTokens' | 'claimWin';
 
 export type AuctionProviders = MidnightProviders<any>;
 

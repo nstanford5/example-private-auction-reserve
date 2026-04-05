@@ -13,6 +13,7 @@ import {
 } from '@midnight-ntwrk/midnight-js-types';
 import { ttlOneHour } from '@midnight-ntwrk/midnight-js-utils';
 import { type WalletFacade, type FacadeState } from '@midnight-ntwrk/wallet-sdk-facade';
+import { type UnshieldedKeystore } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
 import {
   type DustWalletOptions,
   type EnvironmentConfiguration,
@@ -30,6 +31,7 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
     wallet: WalletFacade,
     private readonly zswapSecretKeys: ZswapSecretKeys,
     private readonly dustSecretKey: DustSecretKey,
+    private readonly unshieldedKeystore: UnshieldedKeystore,
   ) {
     this.wallet = wallet;
   }
@@ -40,6 +42,11 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
 
   getEncryptionPublicKey(): EncPublicKey {
     return this.zswapSecretKeys.encryptionPublicKey;
+  }
+
+  // @TODO -- don't think I need this
+  getUnshieldedKeystore(): UnshieldedKeystore {
+    return this.unshieldedKeystore;
   }
 
   async balanceTx(
@@ -54,7 +61,11 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
       },
       { ttl },
     );
-    return await this.wallet.finalizeRecipe(recipe);
+    const signed = await this.wallet.signRecipe(
+      recipe,
+      (payload) => this.unshieldedKeystore.signData(payload),
+    );
+    return await this.wallet.finalizeRecipe(signed);
   }
 
   submitTx(tx: FinalizedTransaction): Promise<string> {
@@ -85,13 +96,15 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
       .withDustOptions(dustOptions);
 
     const buildResult = await builder.withSeed(seed).buildWithoutStarting();
-    const { wallet, seeds } = buildResult as {
+    const { wallet, seeds, keystore } = buildResult as {
       wallet: WalletFacade;
       seeds: {
         masterSeed: string;
         shielded: Uint8Array;
+        unshielded: Uint8Array;
         dust: Uint8Array;
       };
+      keystore: UnshieldedKeystore;
     };
 
     logger.info(`Wallet built from seed: ${seeds.masterSeed.slice(0, 8)}...`);
@@ -102,6 +115,7 @@ export class MidnightWalletProvider implements MidnightProvider, WalletProvider 
       wallet,
       ZswapSecretKeys.fromSeed(seeds.shielded),
       DustSecretKey.fromSeed(seeds.dust),
+      keystore,
     );
   }
 }

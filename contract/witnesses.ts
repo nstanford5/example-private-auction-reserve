@@ -1,4 +1,4 @@
-import { type Ledger } from './contract/managed/silent-auction/contract/index.js';
+import { type Ledger } from '../contract/managed/silent-auction/contract/index.js';
 import { type WitnessContext } from '@midnight-ntwrk/compact-runtime';
 
 export type AuctionPrivateState = {
