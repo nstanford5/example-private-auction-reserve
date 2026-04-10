@@ -1,8 +1,7 @@
 /**
     Silent Auction where the organizer can set a minimum price (reserve)
     that remains unknown to bidders until the max number of bids
-    has been reached. Bidders are aware of each others bids and current highest bid, 
-    but the identity of bidders is private.
+    has been reached. Bidders are aware of each others bids and current highest bid.
 **/
 pragma language_version 0.22;
 import CompactStandardLibrary;
@@ -81,9 +80,12 @@ export circuit bid(bidAmount: Uint<16>): [] {
     }
     bidders.insert(pubKey, publicBid);
     bidCount.increment(1);
+
+    // update highest bid if this bid is higher
     if(publicBid > highestBid){
         highestBid = publicBid;
     }
+    // if maxBids has been reached, change state to closed
     if(bidCount == maxBids){
         auctionState = AuctionState.CLOSED;
     }
