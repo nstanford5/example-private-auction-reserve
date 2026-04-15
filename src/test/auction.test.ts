@@ -4,7 +4,8 @@ import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import {
     deployContract,
     submitCallTx,
-    getUnshieldedBalances
+    type DeployedContract,
+    type FinalizedCallTxData,
 } from '@midnight-ntwrk/midnight-js-contracts';
 import { type ContractAddress, decodeRawTokenType } from '@midnight-ntwrk/compact-runtime';
 import pino from 'pino';
@@ -21,6 +22,7 @@ import {
 import type { EnvironmentConfiguration } from '@midnight-ntwrk/testkit-js';
 import {
     AuctionState,
+    Contract,
 } from '../../contract/managed/silent-auction/contract/index.js';
 import { createAuctionPrivateState } from '../../contract/witnesses.js';
 
@@ -55,8 +57,6 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
     let contractAddress: ContractAddress;
     const _MIN_PRICE = BigInt(100);
     const MAX_BIDS = BigInt(5);
-
-    // @TODO -- try SEED 000
 
     const config = getConfig();
 
@@ -118,15 +118,21 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
 
 
         const aliceSk = randomBytes(32);
+        const aliceSalt = randomBytes(32);
         const alicePrivateState = createAuctionPrivateState(
-            aliceSk
+            aliceSk,
+            aliceSalt
         );
+        const aliceUnshielded = await aliceWallet.wallet.unshielded.getAddress();
+        const aliceAddress = { bytes: new Uint8Array(aliceUnshielded.data) };
 
-        const deployed: any = await (deployContract as any)(aliceProviders, {
-            compiledContract: CompiledAuctionContract,
-            privateStateId: ALICE_PRIVATE_ID,
-            initialPrivateState: alicePrivateState,
-            args: [_MIN_PRICE, MAX_BIDS]// constructor args (_minPrice, maxBidCount, deposit)
+
+        const deployed: DeployedContract<Contract> = 
+            await (deployContract<Contract>)(aliceProviders, {
+                compiledContract: CompiledAuctionContract,
+                privateStateId: ALICE_PRIVATE_ID,
+                initialPrivateState: alicePrivateState,
+                args: [_MIN_PRICE, MAX_BIDS, aliceAddress]// constructor args (_minPrice, maxBidCount, address)
         });
 
         contractAddress = deployed.deployTxData.public.contractAddress;
@@ -148,12 +154,12 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
 
         // Deposit for organizer disincentive
         logger.info('Alice is depositing Night tokens to the contract...');
-        const txData: any = await (submitCallTx as any)(aliceProviders, {
-            compiledContract: CompiledAuctionContract,
-            contractAddress,
-            privateStateId: ALICE_PRIVATE_ID,
-            circuitId: 'receiveTokens',
-            args: [],
+        const txData: FinalizedCallTxData<Contract, 'receiveTokens'> = 
+            await (submitCallTx<Contract, "receiveTokens">)(aliceProviders, {
+                compiledContract: CompiledAuctionContract,
+                contractAddress,
+                privateStateId: ALICE_PRIVATE_ID,
+                circuitId: 'receiveTokens',
         });
 
         logger.info(`Deposit transaction finalized: ${txData.public.txId}`);
@@ -183,52 +189,56 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
 
         // setting up bobs private state
         const bobSk = randomBytes(32);
+        const bobSalt = randomBytes(32);
         const bobPrivateState = createAuctionPrivateState(
-            bobSk
+            bobSk,
+            bobSalt
         );
         bobProviders.privateStateProvider.setContractAddress(contractAddress);
         await bobProviders.privateStateProvider.set(BOB_PRIVATE_ID, bobPrivateState);
 
         logger.info(`Bob is sending in a bid...`);
         const bobsBid = BigInt(50);
-        const txData: any = await (submitCallTx as any)(bobProviders, {
-            compiledContract: CompiledAuctionContract,
-            contractAddress,
-            privateStateId: BOB_PRIVATE_ID,
-            circuitId: 'bid',
-            args: [bobsBid]
+        const txData: FinalizedCallTxData<Contract, 'bid'> = 
+            await (submitCallTx as any)(bobProviders, {
+                compiledContract: CompiledAuctionContract,
+                contractAddress,
+                privateStateId: BOB_PRIVATE_ID,
+                circuitId: 'bid',
+                args: [bobsBid]
         });
         logger.info(`Bobs bid is complete!`);
 
         const state = await queryLedger(bobProviders);
         expect(state.auctionState).toEqual(AuctionState.OPEN);
         expect(state.highestBid).toEqual(bobsBid);
-        expect(state.bidCount).toEqual(1n);
         expect(state.bidders.size()).toEqual(1n);
     });
     it('Allows Claire to bid', async () => {
         
         // setting up claire private state
         const claireSk = randomBytes(32);
+        const claireSalt = randomBytes(32);
         const clairePrivateState = createAuctionPrivateState(
             claireSk,
+            claireSalt
         );
         claireProviders.privateStateProvider.setContractAddress(contractAddress);
         await claireProviders.privateStateProvider.set(CLAIRE_PRIVATE_ID, clairePrivateState);
 
         logger.info(`Claire is sending a bid...`);
         const clairesBid = BigInt(150);
-        const txData: any = await (submitCallTx as any)(claireProviders, {
-            compiledContract: CompiledAuctionContract,
-            contractAddress,
-            privateStateId: CLAIRE_PRIVATE_ID,
-            circuitId: 'bid',
-            args: [clairesBid]
+        const txData: FinalizedCallTxData<Contract, 'bid'> = 
+            await (submitCallTx<Contract, 'bid'>)(claireProviders, {
+                compiledContract: CompiledAuctionContract,
+                contractAddress,
+                privateStateId: CLAIRE_PRIVATE_ID,
+                circuitId: 'bid',
+                args: [clairesBid]
         });
         logger.info(`Claire has successfully submitted a bid!`);
 
         const state = await queryLedger(claireProviders);
-        expect(state.bidCount).toEqual(2n);
         expect(state.highestBid).toEqual(clairesBid);
         expect(state.bidders.size()).toEqual(2n);
     });
@@ -238,7 +248,7 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
 
         logger.info(`Claire realizes she bid too much and tries to bid lower...`);
         await expect(async () => {
-            await (submitCallTx as any)(claireProviders, {
+            await (submitCallTx<Contract, 'bid'>)(claireProviders, {
                 compiledContract: CompiledAuctionContract,
                 contractAddress,
                 privateStateId: CLAIRE_PRIVATE_ID,
@@ -249,7 +259,6 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
 
         const state = await queryLedger(claireProviders);
         expect(state.highestBid).toEqual(150n);
-        expect(state.bidCount).toEqual(2n)
         expect(state.bidders.size()).toEqual(2n);
         expect(state.auctionState).toEqual(AuctionState.OPEN);
     });
@@ -258,17 +267,17 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
         const bobHigherBid = BigInt(160);
 
         logger.info(`Bob realizes his bid is too low and submits a new bid...`);
-        const txData: any = await (submitCallTx as any)(bobProviders, {
-            compiledContract: CompiledAuctionContract,
-            contractAddress,
-            privateStateId: BOB_PRIVATE_ID,
-            circuitId: 'bid',
-            args: [bobHigherBid]
+        const txData: FinalizedCallTxData<Contract, 'bid'> = 
+            await (submitCallTx<Contract, 'bid'>)(bobProviders, {
+                compiledContract: CompiledAuctionContract,
+                contractAddress,
+                privateStateId: BOB_PRIVATE_ID,
+                circuitId: 'bid',
+                args: [bobHigherBid]
         });
         logger.info(`Bobs bid was successful!`);
 
         const state = await queryLedger(bobProviders);
-        expect(state.bidCount).toEqual(3n);
         expect(state.bidders.size()).toEqual(2n);// still only 2 unique bidders, bobs old bid is supplanted
         expect(state.highestBid).toEqual(bobHigherBid);
         expect(state.auctionState).toEqual(AuctionState.OPEN);
@@ -277,7 +286,7 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
 
         logger.info(`Alice tries to bid (should fail)...`);
         await expect(async () => {
-            await (submitCallTx as any)(aliceProviders, {
+            await (submitCallTx<Contract, 'bid'>)(aliceProviders, {
                 compiledContract: CompiledAuctionContract,
                 contractAddress,
                 privateStateId: ALICE_PRIVATE_ID,
@@ -293,12 +302,11 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
 
         logger.info(`Bob tries to close the auction (should fail)...`);
         await expect(async () => {
-            await (submitCallTx as any)(bobProviders, {
+            await (submitCallTx<Contract, 'closeAuction'>)(bobProviders, {
                 compiledContract: CompiledAuctionContract,
                 contractAddress,
                 privateStateId: BOB_PRIVATE_ID,
                 circuitId: 'closeAuction',
-                args: []// minPrice, address
             });
         }).rejects.toThrow();
         logger.info(`Bob was rejected from closing the auction!`);
@@ -307,30 +315,28 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
 
         logger.info(`Claire is trying to close the auction (should fail)...`);
         await expect(async () => {
-            await (submitCallTx as any)(claireProviders, {
+            await (submitCallTx<Contract, 'closeAuction'>)(claireProviders, {
                 compiledContract: CompiledAuctionContract,
                 contractAddress,
                 privateStateId: CLAIRE_PRIVATE_ID,
                 circuitId: 'closeAuction',
-                args: []
             });
         }).rejects.toThrow();
         logger.info(`Claire was rejected from closing the auction!`);
 
         logger.info(`Alice is closing the auction...`);
-        const txData: any = await (submitCallTx as any)(aliceProviders, {
+        const txData: FinalizedCallTxData<Contract, 'closeAuction'> = 
+            await (submitCallTx<Contract, 'closeAuction'>)(aliceProviders, {
                 compiledContract: CompiledAuctionContract,
                 contractAddress,
                 privateStateId: ALICE_PRIVATE_ID,
                 circuitId: 'closeAuction',
-                args: []
         });
         logger.info(`Alice successfully closed the auction!`);
 
         const state = await queryLedger(aliceProviders);
         expect(state.auctionState).toEqual(AuctionState.CLOSED);
         expect(state.highestBid).toEqual(160n);// Bob wins
-        expect(state.bidCount).toEqual(3n);
         expect(state.bidders.size()).toEqual(2n);// still only 2 unique bidders
     });
     it('reveals the winner', async () => {
@@ -339,15 +345,16 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
         const addrBytes = { bytes: new Uint8Array(aliceAddress.data)};
 
         logger.info(`Alice is attempting to revealWin...`);
-        const txData: any = await (submitCallTx as any)(aliceProviders, {
-            compiledContract: CompiledAuctionContract,
-            contractAddress,
-            privateStateId: ALICE_PRIVATE_ID,
-            circuitId: 'revealWin',
-            args: [_MIN_PRICE, addrBytes]
+        const txData: FinalizedCallTxData<Contract, 'revealWin'> = 
+            await (submitCallTx<Contract, 'revealWin'>)(aliceProviders, {
+                compiledContract: CompiledAuctionContract,
+                contractAddress,
+                privateStateId: ALICE_PRIVATE_ID,
+                circuitId: 'revealWin',
+                args: [_MIN_PRICE]
         });
         logger.info(`Alice successfully revealed the winner!`);
-
+        // @TODO -- run some more tests here
     });
     it('Allows Bob(and only Bob) to claim the win', async () => {
 
@@ -355,7 +362,7 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
         const claireUnshielded = await claireWallet.wallet.unshielded.getAddress();
         const claireAddress = { bytes: new Uint8Array(claireUnshielded.data) };
         await expect(async () => {
-            await (submitCallTx as any)(claireProviders, {
+            await (submitCallTx<Contract, 'claimWin'>)(claireProviders, {
                 compiledContract: CompiledAuctionContract,
                 contractAddress,
                 privateStateId: CLAIRE_PRIVATE_ID,
@@ -369,12 +376,13 @@ describe('Silent Auction Smart Contract via midnight-js', () => {
         const bobAddress = { bytes: new Uint8Array(bobUnshielded.data) };
 
         logger.info(`Bob is attempting to claim his new NFT...`);
-        const txData: any = await (submitCallTx as any)(bobProviders, {
-            compiledContract: CompiledAuctionContract,
-            contractAddress,
-            privateStateId: BOB_PRIVATE_ID,
-            circuitId: 'claimWin',
-            args: [bobAddress]
+        const txData: FinalizedCallTxData<Contract, 'claimWin'> = 
+            await (submitCallTx<Contract, 'claimWin'>)(bobProviders, {
+                compiledContract: CompiledAuctionContract,
+                contractAddress,
+                privateStateId: BOB_PRIVATE_ID,
+                circuitId: 'claimWin',
+                args: [bobAddress]
         });
         logger.info(`Bob has successfully executed claimWin!`);
 

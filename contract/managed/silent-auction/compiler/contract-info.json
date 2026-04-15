@@ -57,22 +57,6 @@
             "type-name": "Uint",
             "maxval": 65535
           }
-        },
-        {
-          "name": "address",
-          "type": {
-            "type-name": "Struct",
-            "name": "UserAddress",
-            "elements": [
-              {
-                "name": "bytes",
-                "type": {
-                  "type-name": "Bytes",
-                  "length": 32
-                }
-              }
-            ]
-          }
         }
       ],
       "result-type": {
@@ -87,7 +71,7 @@
       "proof": true,
       "arguments": [
         {
-          "name": "address",
+          "name": "winnerAddress",
           "type": {
             "type-name": "Struct",
             "name": "UserAddress",
@@ -108,29 +92,20 @@
         "types": [
         ]
       }
-    },
-    {
-      "name": "getDappPubKey",
-      "pure": true,
-      "proof": false,
-      "arguments": [
-        {
-          "name": "_sk",
-          "type": {
-            "type-name": "Bytes",
-            "length": 32
-          }
-        }
-      ],
-      "result-type": {
-        "type-name": "Bytes",
-        "length": 32
-      }
     }
   ],
   "witnesses": [
     {
       "name": "localSk",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    },
+    {
+      "name": "localSalt",
       "arguments": [
       ],
       "result type": {
