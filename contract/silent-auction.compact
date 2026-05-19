@@ -52,7 +52,7 @@ export circuit receiveTokens(): [] {
     assert(auctionOrganizer == disclose(pubKey), "You are not the auctionOrganizer");
 
     // take in deposit from organizer
-    receiveUnshielded(default<Bytes<32>>, depositAmount as Uint<128>);
+    receiveUnshielded(nativeToken(), depositAmount as Uint<128>);
 
     // @TODO -- create a unique identifier passed in by the constructor?
     const domain = pad(32, "auction:nft");
@@ -121,7 +121,7 @@ export circuit revealWin(minPrice: Uint<16>): [] {
     // send deposit back to organizer
     if(highestBid < publicPrice){
         sendUnshielded(
-            default<Bytes<32>>, 
+            nativeToken(), 
             depositAmount as Uint<128>, 
             right<ContractAddress, UserAddress>(organizerAddress)
         );
@@ -136,7 +136,7 @@ export circuit claimWin(winnerAddress: UserAddress): [] {
     assert(auctionState == AuctionState.CLOSED, "The auction is not yet closed");
 
     // take in the price from the winner
-    receiveUnshielded(default<Bytes<32>>, highestBid as Uint<128>);
+    receiveUnshielded(nativeToken(), highestBid as Uint<128>);
 
     // send out the NFT to the winner
     sendUnshielded(
@@ -148,7 +148,7 @@ export circuit claimWin(winnerAddress: UserAddress): [] {
     // send deposit back to organizer
     const total = highestBid + depositAmount;
     sendUnshielded(
-        default<Bytes<32>>, 
+        nativeToken(), 
         total as Uint<128>, 
         right<ContractAddress, UserAddress>(organizerAddress)
     );
