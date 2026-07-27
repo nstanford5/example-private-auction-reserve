@@ -1,5 +1,5 @@
 // This files main purpose is to export the compiled contract
-import { CompiledContract } from '@midnight-ntwrk/compact-js';
+import { CompiledContract } from '@midnight-ntwrk/midnight-js-protocol/compact-js';
 import path from 'node:path';
 
 export {

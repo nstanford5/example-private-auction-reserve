@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomBytes } from 'node:crypto';
+import { WebSocket } from 'ws';
 import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
 import {
     deployContract,
@@ -7,13 +8,13 @@ import {
     type DeployedContract,
     type FinalizedCallTxData,
 } from '@midnight-ntwrk/midnight-js-contracts';
-import { type ContractAddress, decodeRawTokenType } from '@midnight-ntwrk/compact-runtime';
+import { type ContractAddress, decodeRawTokenType } from '@midnight-ntwrk/midnight-js-protocol/compact-runtime';
 import pino from 'pino';
 
 import { getConfig } from '../config.js';
 import { MidnightWalletProvider, syncWallet } from '../wallet.js';
 import { buildProviders, type AuctionProviders } from '../providers.js';
-import { MidnightBech32m } from '@midnight-ntwrk/wallet-sdk-address-format';
+import { MidnightBech32m } from '@midnight-ntwrk/wallet-sdk';
 import {
     CompiledAuctionContract,
     ledger,
@@ -25,6 +26,10 @@ import {
     Contract,
 } from '../../contract/managed/silent-auction/contract/index.js';
 import { createAuctionPrivateState } from '../../contract/witnesses.js';
+
+// Required for GraphQL subscriptions against the indexer in Node.js
+// @ts-expect-error WebSocket global assignment for apollo
+globalThis.WebSocket = WebSocket;
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('UNHANDLED REJECTION:', reason);

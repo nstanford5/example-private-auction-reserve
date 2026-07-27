@@ -143,14 +143,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('bid',
                                      'argument 1 (as invoked from Typescript)',
-                                     'silent-auction.compact line 71 char 1',
+                                     'silent-auction.compact line 70 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(bidAmount_0) === 'bigint' && bidAmount_0 >= 0n && bidAmount_0 <= 65535n)) {
           __compactRuntime.typeError('bid',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'silent-auction.compact line 71 char 1',
+                                     'silent-auction.compact line 70 char 1',
                                      'Uint<0..65536>',
                                      bidAmount_0)
         }
@@ -176,7 +176,7 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('closeAuction',
                                      'argument 1 (as invoked from Typescript)',
-                                     'silent-auction.compact line 97 char 1',
+                                     'silent-auction.compact line 96 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
@@ -200,14 +200,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('revealWin',
                                      'argument 1 (as invoked from Typescript)',
-                                     'silent-auction.compact line 106 char 1',
+                                     'silent-auction.compact line 105 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(minPrice_0) === 'bigint' && minPrice_0 >= 0n && minPrice_0 <= 65535n)) {
           __compactRuntime.typeError('revealWin',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'silent-auction.compact line 106 char 1',
+                                     'silent-auction.compact line 105 char 1',
                                      'Uint<0..65536>',
                                      minPrice_0)
         }
@@ -234,14 +234,14 @@ export class Contract {
         if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.currentQueryContext != undefined)) {
           __compactRuntime.typeError('claimWin',
                                      'argument 1 (as invoked from Typescript)',
-                                     'silent-auction.compact line 131 char 1',
+                                     'silent-auction.compact line 130 char 1',
                                      'CircuitContext',
                                      contextOrig_0)
         }
         if (!(typeof(winnerAddress_0) === 'object' && winnerAddress_0.bytes.buffer instanceof ArrayBuffer && winnerAddress_0.bytes.BYTES_PER_ELEMENT === 1 && winnerAddress_0.bytes.length === 32)) {
           __compactRuntime.typeError('claimWin',
                                      'argument 1 (argument 2 as invoked from Typescript)',
-                                     'silent-auction.compact line 131 char 1',
+                                     'silent-auction.compact line 130 char 1',
                                      'struct UserAddress<bytes: Bytes<32>>',
                                      winnerAddress_0)
         }
