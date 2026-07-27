@@ -15,7 +15,7 @@ export enum AuctionState {
 
 export sealed ledger auctionOrganizer: Bytes<32>;
 export sealed ledger hiddenPrice: Bytes<32>;
-export sealed ledger maxBids: Uint<16>;// maybe this should remain private?
+export sealed ledger maxBids: Uint<16>;
 export sealed ledger depositAmount: Uint<64>;
 export ledger publicPrice: Uint<16>;
 export ledger bidders: Map<Bytes<32>, Uint<16>>;// unique bidders, overwriting bids allowed
@@ -32,7 +32,7 @@ constructor(_minPrice: Uint<16>, maxBidCount: Uint<16>, address: UserAddress) {
     const pubKey = getDappPubKey(_sk);
     auctionOrganizer = disclose(pubKey);
 
-    const _salt = localSalt();
+    const _salt = localSalt();// @TODO -- can't you just use the secret
     const hashedPrice = commitPrice(_minPrice, _salt);
 
     depositAmount = 50;// the contract requires a 50 NIGHT deposit to dis-incentivize Alice
@@ -54,7 +54,6 @@ export circuit receiveTokens(): [] {
     // take in deposit from organizer
     receiveUnshielded(nativeToken(), depositAmount as Uint<128>);
 
-    // @TODO -- create a unique identifier passed in by the constructor?
     const domain = pad(32, "auction:nft");
 
     // mint the NFT that is up for auction
